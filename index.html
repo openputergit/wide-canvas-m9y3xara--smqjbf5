@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Complaint Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f7fa;
+        }
+        .dashboard-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .status-icon-green {
+            color: #4CAF50;
+        }
+        .status-icon-orange {
+            color: #FF9800;
+        }
+        .status-icon-red {
+            color: #F44336;
+        }
+        .complaint-item:hover {
+            background-color: #f3f4f6;
+        }
+        .priority-high {
+            background-color: rgba(244, 67, 54, 0.1);
+            border-left: 4px solid #F44336;
+        }
+        .priority-medium {
+            background-color: rgba(255, 152, 0, 0.1);
+            border-left: 4px solid #FF9800;
+        }
+        .priority-low {
+            background-color: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid #4CAF50;
+        }
+        .tag {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="container mx-auto p-4 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="flex-shrink-0">
+                        <svg class="w-10 h-10" viewBox="0 0 40 40" fill="none">
+                            <circle cx="20" cy="20" r="18" fill="#4285F4" />
+                            <circle cx="20" cy="20" r="15" fill="#34A853" />
+                            <circle cx="20" cy="20" r="12" fill="#FBBC05" />
+                            <circle cx="20" cy="20" r="9" fill="#EA4335" />
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800">Customer Complaint Analyzer</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full">
+                        <i class="bi bi-gear"></i>
+                    </button>
+                    <button class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full">
+                        <i class="bi bi-question-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 container mx-auto p-4 md:p-6">
+            <!-- Search & Filters Bar -->
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                <div class="relative w-full md:w-1/2">
+                    <input 
+                        type="text" 
+                        placeholder="Search complaints..." 
+                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        id="searchInput"
+                    >
+                    <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+                <div class="flex items-center space-x-4 w-full md:w-auto">
+                    <button class="p-2 bg-white border border-gray-300 rounded">
+                        <i class="bi bi-funnel"></i>
+                    </button>
+                    <button class="p-2 bg-white border border-gray-300 rounded">
+                        <i class="bi bi-sort-down"></i>
+                    </button>
+                    <button class="p-2 bg-white border border-gray-300 rounded" id="refreshData">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    <button class="p-2 bg-white border border-gray-300 rounded">
+                        <i class="bi bi-cloud-download"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                <div class="dashboard-card p-4 flex flex-col justify-center items-center">
+                    <p class="text-gray-600 font-medium">Total</p>
+                    <h3 class="text-xl font-bold text-gray-800 mt-1" id="totalComplaints">0</h3>
+                </div>
+                <div class="dashboard-card p-4 flex flex-col justify-center items-center">
+                    <p class="text-gray-600 font-medium">Active</p>
+                    <h3 class="text-xl font-bold text-gray-800 mt-1" id="activeComplaints">0</h3>
+                </div>
+                <div class="dashboard-card p-4 flex flex-col justify-center items-center">
+                    <p class="text-gray-600 font-medium">Critical</p>
+                    <h3 class="text-xl font-bold text-red-600 mt-1" id="criticalComplaints">0</h3>
+                </div>
+                <div class="dashboard-card p-4 flex flex-col justify-center items-center">
+                    <p class="text-gray-600 font-medium">High</p>
+                    <h3 class="text-xl font-bold text-orange-500 mt-1" id="highComplaints">0</h3>
+                </div>
+                <div class="dashboard-card p-4 flex flex-col justify-center items-center">
+                    <p class="text-gray-600 font-medium">Medium</p>
+                    <h3 class="text-xl font-bold text-yellow-600 mt-1" id="mediumComplaints">0</h3>
+                </div>
+                <div class="dashboard-card p-4 flex flex-col justify-center items-center">
+                    <p class="text-gray-600 font-medium">Low</p>
+                    <h3 class="text-xl font-bold text-green-600 mt-1" id="lowComplaints">0</h3>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Complaints List -->
+                <div class="dashboard-card p-4 col-span-1">
+                    <div class="border-b border-gray-200 pb-2 mb-4">
+                        <h2 class="text-lg font-bold text-gray-800">Prioritized Complaints</h2>
+                    </div>
+                    <div class="overflow-y-auto max-h-[500px]" id="complaintsContainer">
+                        <!-- Complaints will be inserted here by JavaScript -->
+                        <div class="flex items-center justify-center h-64">
+                            <p class="text-gray-400">Loading complaints...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Section - Charts -->
+                <div class="col-span-1 lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Category Distribution -->
+                    <div class="dashboard-card p-4">
+                        <div class="border-b border-gray-200 pb-2 mb-4">
+                            <h2 class="text-lg font-bold text-gray-800">Category Distribution</h2>
+                        </div>
+                        <div class="flex justify-center items-center h-[300px]">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Heatmap / Severity Matrix -->
+                    <div class="dashboard-card p-4">
+                        <div class="border-b border-gray-200 pb-2 mb-4">
+                            <h2 class="text-lg font-bold text-gray-800">Severity Matrix</h2>
+                        </div>
+                        <div class="grid grid-cols-4 grid-rows-4 gap-2 mt-4" id="severityMatrix">
+                            <!-- Severity matrix will be generated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Trend Analysis -->
+                    <div class="dashboard-card p-4">
+                        <div class="border-b border-gray-200 pb-2 mb-4">
+                            <h2 class="text-lg font-bold text-gray-800">Trend Analysis</h2>
+                        </div>
+                        <div class="flex justify-center items-center h-[200px]">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Status Overview -->
+                    <div class="dashboard-card p-4">
+                        <div class="border-b border-gray-200 pb-2 mb-4">
+                            <h2 class="text-lg font-bold text-gray-800">Status Overview</h2>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-50 rounded-lg p-4 flex items-center justify-center">
+                                <div class="rounded-full w-16 h-16 border-4 border-green-500 flex items-center justify-center">
+                                    <i class="bi bi-check text-2xl text-green-500"></i>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 flex items-center justify-center">
+                                <div class="rounded-full w-16 h-16 border-4 border-orange-500 flex items-center justify-center">
+                                    <i class="bi bi-check text-2xl text-orange-500"></i>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 flex items-center justify-center">
+                                <div class="rounded-full w-16 h-16 border-4 border-red-500 flex items-center justify-center">
+                                    <i class="bi bi-check text-2xl text-red-500"></i>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 flex items-center justify-center">
+                                <div class="rounded-full w-16 h-16 border-4 border-green-500 flex items-center justify-center">
+                                    <i class="bi bi-arrow-up-down text-2xl text-green-500"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Modal for Complaint Details -->
+        <div id="complaintModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-gray-800" id="modalTitle">Complaint Details</h3>
+                        <button id="closeModal" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6" id="modalBody">
+                    <!-- Modal content will be inserted here -->
+                </div>
+                <div class="p-4 border-t border-gray-200 flex justify-end">
+                    <button id="updateStatus" class="bg-green-500 text-white px-4 py-2 rounded mr-2 hover:bg-green-600">
+                        Update Status
+                    </button>
+                    <button id="closeModalBtn" class="border border-gray-300 px-4 py-2 rounded hover:bg-gray-100">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample complaint data
+        let complaints = [
+            {
+                id: 1,
+                customer: "John Smith",
+                email: "john.smith@example.com",
+                phone: "555-123-4567",
+                title: "Defective product received",
+                description: "I received a damaged product that doesn't work at all. This is the third time I've had issues with your products.",
+                category: "Product Quality",
+                subcategory: "Damaged on Arrival",
+                severity: "High",
+                urgency: "High",
+                status: "Open",
+                priority: "Critical",
+                dateSubmitted: "2023-10-15T09:23:15",
+                lastUpdated: "2023-10-15T10:12:45",
+                responseTime: "49m",
+                assignedTo: "Support Team A"
+            },
+            {
+                id: 2,
+                customer: "Emily Johnson",
+                email: "emily.j@example.com",
+                phone: "555-987-6543",
+                title: "Billing overcharge",
+                description: "I was charged twice for my last subscription payment. Please refund the extra charge.",
+                category: "Billing",
+                subcategory: "Double Charge",
+                severity: "Medium",
+                urgency: "High",
+                status: "In Progress",
+                priority: "High",
+                dateSubmitted: "2023-10-14T15:42:10",
+                lastUpdated: "2023-10-15T09:35:22",
+                responseTime: "17h 53m",
+                assignedTo: "Finance Team"
+            },
+            {
+                id: 3,
+                customer: "Michael Wong",
+                email: "m.wong@example.com",
+                phone: "555-456-7890",
+                title: "Can't access my account",
+                description: "I've been trying to log in to my account for the past 2 days but keep getting an error message.",
+                category: "Account Access",
+                subcategory: "Login Issue",
+                severity: "Medium",
+                urgency: "Medium",
+                status: "Open",
+                priority: "Medium",
+                dateSubmitted: "2023-10-14T10:15:30",
+                lastUpdated: "2023-10-14T11:20:45",
+                responseTime: "1h 5m",
+                assignedTo: "Tech Support"
+            },
+            {
+                id: 4,
+                customer: "Sarah Davis",
+                email: "sarah.d@example.com",
+                phone: "555-789-1234",
+                title: "Missing features in premium plan",
+                description: "I upgraded to the premium plan but don't see the advanced features that were advertised.",
+                category: "Subscription",
+                subcategory: "Missing Features",
+                severity: "Low",
+                urgency: "Low",
+                status: "Open",
+                priority: "Low",
+                dateSubmitted: "2023-10-13T14:20:15",
+                lastUpdated: "2023-10-13T16:45:30",
+                responseTime: "2h 25m",
+                assignedTo: "Customer Success"
+            },
+            {
+                id: 5,
+                customer: "Robert Chen",
+                email: "r.chen@example.com",
+                phone: "555-246-8102",
+                title: "Delayed delivery",
+                description: "My order #45789 was supposed to arrive yesterday but I haven't received it yet.",
+                category: "Shipping",
+                subcategory: "Delayed Delivery",
+                severity: "Medium",
+                urgency: "Medium",
+                status: "In Progress",
+                priority: "Medium",
+                dateSubmitted: "2023-10-12T16:50:20",
+                lastUpdated: "2023-10-13T09:15:40",
+                responseTime: "16h 25m",
+                assignedTo: "Logistics Team"
+            },
+            {
+                id: 6,
+                customer: "Jessica Kim",
+                email: "j.kim@example.com",
+                phone: "555-357-9024",
+                title: "Website not working on mobile",
+                description: "I can't place an order through your website on my iPhone. The checkout button doesn't work.",
+                category: "Website",
+                subcategory: "Mobile Functionality",
+                severity: "High",
+                urgency: "Medium",
+                status: "Open",
+                priority: "High",
+                dateSubmitted: "2023-10-15T08:10:25",
+                lastUpdated: "2023-10-15T08:45:10",
+                responseTime: "35m",
+                assignedTo: "Web Development Team"
+            },
+            {
+                id: 7,
+                customer: "David Wilson",
+                email: "d.wilson@example.com",
+                phone: "555-864-2013",
+                title: "Refund not processed",
+                description: "I returned an item 2 weeks ago and was told I would receive a refund within 7 days, but nothing has been processed yet.",
+                category: "Refunds",
+                subcategory: "Delayed Processing",
+                severity: "Medium",
+                urgency: "High",
+                status: "In Progress",
+                priority: "High",
+                dateSubmitted: "2023-10-10T11:30:45",
+                lastUpdated: "2023-10-12T14:25:30",
+                responseTime: "50h 55m",
+                assignedTo: "Finance Team"
+            },
+            {
+                id: 8,
+                customer: "Olivia Martinez",
+                email: "o.martinez@example.com",
+                phone: "555-122-3344",
+                title: "Damaged packaging",
+                description: "My order arrived with damaged packaging, though the product inside seems okay.",
+                category: "Shipping",
+                subcategory: "Packaging Issue",
+                severity: "Low",
+                urgency: "Low",
+                status: "Open",
+                priority: "Low",
+                dateSubmitted: "2023-10-11T13:45:20",
+                lastUpdated: "2023-10-11T14:30:15",
+                responseTime: "45m",
+                assignedTo: "Customer Service"
+            },
+            {
+                id: 9,
+                customer: "James Taylor",
+                email: "j.taylor@example.com",
+                phone: "555-667-8899",
+                title: "Software crashes repeatedly",
+                description: "Your software keeps crashing every time I try to export a file. This is affecting my work significantly.",
+                category: "Software",
+                subcategory: "Application Crashes",
+                severity: "High",
+                urgency: "High",
+                status: "Open",
+                priority: "Critical",
+                dateSubmitted: "2023-10-15T07:50:30",
+                lastUpdated: "2023-10-15T08:10:45",
+                responseTime: "20m",
+                assignedTo: "Technical Support"
+            },
+            {
+                id: 10,
+                customer: "Sophia Lee",
+                email: "s.lee@example.com",
+                phone: "555-445-6677",
+                title: "Subscription auto-renewed after cancellation",
+                description: "I cancelled my subscription last month but was charged again this month.",
+                category: "Billing",
+                subcategory: "Unwanted Renewal",
+                severity: "High",
+                urgency: "Medium",
+                status: "Open",
+                priority: "High",
+                dateSubmitted: "2023-10-14T09:15:40",
+                lastUpdated: "2023-10-14T10:20:30",
+                responseTime: "1h 5m",
+                assignedTo: "Billing Support"
+            }
+        ];
+
+        // Helper function to determine priority based on severity and urgency
+        function calculatePriority(severity, urgency) {
+            if (severity === "High" && urgency === "High") {
+                return "Critical";
+            } else if (severity === "High" || urgency === "High") {
+                return "High";
+            } else if (severity === "Medium" || urgency === "Medium") {
+                return "Medium";
+            } else {
+                return "Low";
+            }
+        }
+
+        // Sort complaints by priority
+        function sortComplaintsByPriority(complaints) {
+            const priorityOrder = { "Critical": 0, "High": 1, "Medium": 2, "Low": 3 };
+            return complaints.sort((a, b) => {
+                return priorityOrder[a.priority] - priorityOrder[b.priority];
+            });
+        }
+
+        // Calculate time elapsed since submission
+        function getTimeElapsed(dateSubmitted) {
+            const submitted = new Date(dateSubmitted);
+            const now = new Date();
+            const diffMs = now - submitted;
+            const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMins = Math.round((diffMs / (1000 * 60)) % 60);
+            
+            if (diffHrs > 0) {
+                return `${diffHrs}h ${diffMins}m ago`;
+            } else {
+                return `${diffMins}m ago`;
+            }
+        }
+
+        // Render complaints list
+        function renderComplaints(complaintsList) {
+            const container = document.getElementById('complaintsContainer');
+            
+            if (complaintsList.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-400 py-8">No complaints found</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            complaintsList.forEach(complaint => {
+                const priorityClass = complaint.priority === "Critical" ? "priority-high" : 
+                                     complaint.priority === "High" ? "priority-high" : 
+                                     complaint.priority === "Medium" ? "priority-medium" : "priority-low";
+                
+                const statusColor = complaint.status === "Open" ? "bg-red-100 text-red-800" :
+                                   complaint.status === "In Progress" ? "bg-yellow-100 text-yellow-800" :
+                                   "bg-green-100 text-green-800";
+                
+                const timeElapsed = getTimeElapsed(complaint.dateSubmitted);
+                
+                const complaintItem = document.createElement('div');
+                complaintItem.className = `complaint-item p-3 mb-3 rounded-lg ${priorityClass} cursor-pointer`;
+                complaintItem.dataset.id = complaint.id;
+                
+                complaintItem.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-medium text-gray-900 mb-1">${complaint.title}</h3>
+                            <p class="text-sm text-gray-500 mb-2">From: ${complaint.customer}</p>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span class="tag bg-blue-100 text-blue-800">${complaint.category}</span>
+                                <span class="tag ${statusColor}">${complaint.status}</span>
+                                <span class="tag bg-purple-100 text-purple-800">${complaint.priority}</span>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500">${timeElapsed}</div>
+                    </div>
+                    <p class="text-sm text-gray-700 line-clamp-2">${complaint.description.substring(0, 100)}${complaint.description.length > 100 ? '...' : ''}</p>
+                `;
+                
+                complaintItem.addEventListener('click', () => showComplaintDetails(complaint.id));
+                container.appendChild(complaintItem);
+            });
+        }
+
+        // Update statistics on the dashboard
+        function updateDashboardStats(complaints) {
+            document.getElementById('totalComplaints').textContent = complaints.length;
+            
+            const activeComplaints = complaints.filter(c => c.status !== "Resolved").length;
+            document.getElementById('activeComplaints').textContent = activeComplaints;
+            
+            const criticalComplaints = complaints.filter(c => c.priority === "Critical").length;
+            document.getElementById('criticalComplaints').textContent = criticalComplaints;
+            
+            const highComplaints = complaints.filter(c => c.priority === "High").length;
+            document.getElementById('highComplaints').textContent = highComplaints;
+            
+            const mediumComplaints = complaints.filter(c => c.priority === "Medium").length;
+            document.getElementById('mediumComplaints').textContent = mediumComplaints;
+            
+            const lowComplaints = complaints.filter(c => c.priority === "Low").length;
+            document.getElementById('lowComplaints').textContent = lowComplaints;
+        }
+
+        // Generate and render category distribution chart
+        function renderCategoryChart(complaints) {
+            const categories = {};
+            complaints.forEach(complaint => {
+                if (categories[complaint.category]) {
+                    categories[complaint.category]++;
+                } else {
+                    categories[complaint.category] = 1;
+                }
+            });
+
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(categories),
+                    datasets: [{
+                        data: Object.values(categories),
+                        backgroundColor: [
+                            '#F44336', // Red
+                            '#4CAF50', // Green
+                            '#FF9800', // Orange
+                            '#2196F3', // Blue
+                            '#9C27B0', // Purple
+                            '#00BCD4', // Cyan
+                            '#795548', // Brown
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Generate and render trend chart
+        function renderTrendChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'],
+                    datasets: [
+                        {
+                            label: 'Low Priority',
+                            data: [3, 5, 2, 6, 4],
+                            backgroundColor: '#4CAF50',
+                        },
+                        {
+                            label: 'Medium Priority',
+                            data: [2, 3, 4, 2, 5],
+                            backgroundColor: '#FF9800',
+                        },
+                        {
+                            label: 'High Priority',
+                            data: [4, 2, 3, 7, 3],
+                            backgroundColor: '#F44336',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            stacked: false
+                        },
+                        x: {
+                            stacked: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Generate and render severity matrix
+        function renderSeverityMatrix() {
+            const matrix = document.getElementById('severityMatrix');
+            matrix.innerHTML = '';
+            
+            // Headers
+            matrix.innerHTML += '<div class="text-center font-medium text-gray-400">Impact</div>';
+            
+            // Column labels (top)
+            for (let i = 1; i <= 3; i++) {
+                matrix.innerHTML += `<div class="text-center font-medium text-gray-700">Level ${i}</div>`;
+            }
+            
+            // Row labels (left side) and cells
+            const urgencyLabels = ['High', 'Medium', 'Low'];
+            const colors = {
+                'High-3': '#F44336', // Critical - Red
+                'High-2': '#FF5722', // High - Dark Orange
+                'High-1': '#FF9800', // Medium - Orange
+                'Medium-3': '#FF9800', // High - Orange
+                'Medium-2': '#FFC107', // Medium - Amber
+                'Medium-1': '#FFEB3B', // Low-Medium - Yellow
+                'Low-3': '#FFC107', // Medium - Amber
+                'Low-2': '#CDDC39', // Low-Medium - Lime
+                'Low-1': '#8BC34A'  // Low - Light Green
+            };
+            
+            urgencyLabels.forEach(urgency => {
+                // Row label
+                matrix.innerHTML += `<div class="font-medium text-gray-700 flex items-center justify-end pr-2">${urgency}</div>`;
+                
+                // Cells for this row
+                for (let impact = 3; impact >= 1; impact--) {
+                    const key = `${urgency}-${impact}`;
+                    const color = colors[key];
+                    const count = Math.floor(Math.random() * 5) + 1; // Random count between 1-5
+                    
+                    matrix.innerHTML += `
+                        <div class="aspect-square flex items-center justify-center rounded" 
+                             style="background-color: ${color}; opacity: 0.8;">
+                            <span class="text-white font-bold">${count}</span>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // Show complaint details in modal
+        function showComplaintDetails(complaintId) {
+            const complaint = complaints.find(c => c.id === complaintId);
+            if (!complaint) return;
+            
+            const modal = document.getElementById('complaintModal');
+            const modalBody = document.getElementById('modalBody');
+            
+            // Set priority color
+            let priorityColor;
+            switch(complaint.priority) {
+                case 'Critical': priorityColor = 'bg-red-100 text-red-800'; break;
+                case 'High': priorityColor = 'bg-orange-100 text-orange-800'; break;
+                case 'Medium': priorityColor = 'bg-yellow-100 text-yellow-800'; break;
+                case 'Low': priorityColor = 'bg-green-100 text-green-800'; break;
+                default: priorityColor = 'bg-gray-100 text-gray-800';
+            }
+            
+            modalBody.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <p class="text-sm text-gray-500">Complaint ID</p>
+                        <p class="font-medium">#${complaint.id}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Status</p>
+                        <p class="font-medium">${complaint.status}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Date Submitted</p>
+                        <p class="font-medium">${new Date(complaint.dateSubmitted).toLocaleString()}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Last Updated</p>
+                        <p class="font-medium">${new Date(complaint.lastUpdated).toLocaleString()}</p>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold mb-2">${complaint.title}</h3>
+                    <div class="mb-4">
+                        <span class="tag ${priorityColor} mr-2">${complaint.priority}</span>
+                        <span class="tag bg-blue-100 text-blue-800">${complaint.category}</span>
+                    </div>
+                    <p class="text-gray-700">${complaint.description}</p>
+                </div>
+                
+                <div class="border-t border-gray-200 pt-4 mb-6">
+                    <h4 class="font-bold mb-2">Customer Information</h4>
+                    <p><span class="text-gray-500">Name:</span> ${complaint.customer}</p>
+                    <p><span class="text-gray-500">Email:</span> ${complaint.email}</p>
+                    <p><span class="text-gray-500">Phone:</span> ${complaint.phone}</p>
+                </div>
+                
+                <div class="border-t border-gray-200 pt-4">
+                    <h4 class="font-bold mb-2">Classification</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-500">Category</p>
+                            <p class="font-medium">${complaint.category}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Subcategory</p>
+                            <p class="font-medium">${complaint.subcategory}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Severity</p>
+                            <p class="font-medium">${complaint.severity}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Urgency</p>
+                            <p class="font-medium">${complaint.urgency}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Assigned To</p>
+                            <p class="font-medium">${complaint.assignedTo}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Response Time</p>
+                            <p class="font-medium">${complaint.responseTime}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('complaintModal').classList.add('hidden');
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sort and render complaints
+            complaints = sortComplaintsByPriority(complaints);
+            renderComplaints(complaints);
+            
+            // Update dashboard statistics
+            updateDashboardStats(complaints);
+            
+            // Render charts
+            renderCategoryChart(complaints);
+            renderTrendChart();
+            renderSeverityMatrix();
+            
+            // Modal close buttons
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+            
+            // Update Status button
+            document.getElementById('updateStatus').addEventListener('click', function() {
+                alert('Status update functionality would be implemented here');
+                closeModal();
+            });
+            
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredComplaints = complaints.filter(complaint => 
+                    complaint.title.toLowerCase().includes(searchTerm) || 
+                    complaint.description.toLowerCase().includes(searchTerm) ||
+                    complaint.customer.toLowerCase().includes(searchTerm) ||
+                    complaint.category.toLowerCase().includes(searchTerm)
+                );
+                renderComplaints(filteredComplaints);
+            });
+            
+            // Refresh data
+            document.getElementById('refreshData').addEventListener('click', function() {
+                this.classList.add('animate-spin');
+                setTimeout(() => {
+                    this.classList.remove('animate-spin');
+                    renderComplaints(complaints);
+                    updateDashboardStats(complaints);
+                }, 1000);
+            });
+        });
+
+        // Add responsiveness to the charts
+        window.addEventListener('resize', function() {
+            renderCategoryChart(complaints);
+            renderTrendChart();
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
